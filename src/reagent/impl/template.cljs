@@ -271,26 +271,11 @@
                  ;; https://www.w3.org/TR/custom-elements/#custom-elements-core-concepts
                  (not= -1 (.indexOf tag "-")))))
 
-(defn try-get-key [x]
-  ;; try catch to avoid clojurescript peculiarity with
-  ;; sorted-maps with keys that are numbers
-  (try (get x :key)
-       (catch :default e)))
-
-(defn get-key [x]
-  (when (map? x)
-    (try-get-key x)))
-
-(defn key-from-vec [v]
-  (if-some [k (-> (meta v) get-key)]
-    k
-    (-> v (nth 1 nil) get-key)))
-
 (defn reag-element [tag v opts]
   (let [c (comp/as-class tag opts)
         jsprops #js {}]
     (set! (.-argv jsprops) v)
-    (when-some [key (key-from-vec v)]
+    (when-some [key (util/react-key-from-vec v)]
       (set! (.-key jsprops) key))
     (react/createElement c jsprops)))
 
@@ -303,14 +288,14 @@
     (let [c (comp/as-class tag opts)
           jsprops #js {}]
       (set! (.-argv jsprops) v)
-      (when-some [key (key-from-vec v)]
+      (when-some [key (util/react-key-from-vec v)]
         (set! (.-key jsprops) key))
       (react/createElement c jsprops))
     (let [jsprops #js {}]
       (set! (.-reagentRender jsprops) tag)
       (set! (.-argv jsprops) (subvec v 1))
       (set! (.-opts jsprops) opts)
-      (when-some [key (key-from-vec v)]
+      (when-some [key (util/react-key-from-vec v)]
         (set! (.-key jsprops) key))
       (react/createElement (comp/funtional-render-fn tag) jsprops))))
 
@@ -320,7 +305,7 @@
         jsprops (or (convert-prop-value (if hasprops props))
                     #js {})
         first-child (+ 1 (if hasprops 1 0))]
-    (when-some [key (key-from-vec argv)]
+    (when-some [key (util/react-key-from-vec argv)]
       (set! (.-key jsprops) key))
     (make-element argv react/Fragment jsprops first-child)))
 
@@ -349,7 +334,7 @@
           (with-meta (meta argv))
           (as-element opts))
       (do
-        (when-some [key (-> (meta argv) get-key)]
+        (when-some [key (-> (meta argv) util/get-react-key)]
           (set! (.-key jsprops) key))
         (make-element argv component jsprops first-child opts)))))
 
@@ -421,7 +406,7 @@
 (defn expand-seq-dev [s ^clj o opts]
   (into-array (map (fn [val]
                      (when (and (vector? val)
-                                (nil? (key-from-vec val)))
+                                (nil? (util/react-key-from-vec val)))
                        (set! (.-no-key o) true))
                      (as-element val opts))
                    s)))

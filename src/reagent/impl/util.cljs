@@ -185,3 +185,20 @@
     (binding [*always-update* true]
       (.forceUpdate comp))
     (.forceUpdate comp)))
+
+;; React key
+
+(defn try-get-react-key [x]
+  ;; try catch to avoid clojurescript peculiarity with
+  ;; sorted-maps with keys that are numbers
+  (try (get x :key)
+       (catch :default e)))
+
+(defn get-react-key [x]
+  (when (map? x)
+    (try-get-react-key x)))
+
+(defn react-key-from-vec [v]
+  (if-some [k (-> (meta v) get-react-key)]
+    k
+    (-> v (nth 1 nil) get-react-key)))
